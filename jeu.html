@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="/bootstrap/css/bootstrap.min.css">
+    <script src="https://kit.fontawesome.com/104583988c.js" crossorigin="anonymous"></script>
+    <title>Pierre Feuille Ciseau</title>
+    <style>
+        .navbar {
+            border-bottom: 1px solid #ddd;
+        }
+
+        .navbar-brand {
+            font-size: 1.5rem;
+        }
+
+        .navbar-nav .nav-link {
+            font-size: 1.2rem;
+        }
+
+        .board {
+            background-color: gainsboro;
+        }
+
+        .cell {
+            border: 1px solid;
+            font-size: 5rem;
+            height: 150px;
+            text-align: center;
+            width: 150px;
+        }
+
+        .cell:hover {
+            cursor: pointer;
+            background-color: rgb(192, 191, 191);
+        }
+
+        .cell:active {
+            background-color: rgb(155, 154, 154);
+        }
+
+        .win-cell {
+            background-color: rgb(47, 151, 255) !important;
+        }
+
+        #messages {
+            list-style-type: none;
+            padding: 0;
+            margin: 0;
+            overflow-y: scroll;
+            max-height: 300px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+
+        #messages li {
+            padding: 10px;
+            margin-bottom: 5px;
+            background-color: #f1f1f1;
+            border-radius: 5px;
+            word-wrap: break-word;
+
+        }
+
+        #input {
+            width: calc(100% - 80px);
+            padding: 10px;
+            margin: 5px 0;
+            display: inline-block;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+            flex: 1;
+            margin-right: 10px;
+        }
+
+        #form2 {
+            display: flex;
+        }
+
+        #form2 button {
+            width: 80px;
+            padding: 10px;
+            margin: 5px 0;
+            border: none;
+            background-color: #3ba1ef;
+            color: white;
+            border-radius: 4px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+        }
+
+        #form2 button:hover {
+            background-color: #092b70;
+        }
+
+        #form2 button:active {
+            background-color: #01347a;
+        }
+
+        #chat-container {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            background-color: #fff;
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+            max-width: 300px;
+            width: 100%;
+        }
+
+        .card-footer {
+            margin-top: 20px;
+            background-color: rgb(221, 221, 221);
+        }
+    </style>
+</head>
+
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/"><i class="fas fa-gamepad"></i></a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
+                data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false"
+                aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarSupportedContent">
+                <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/">Accueil</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/games">Pierre Feuille Ciseau Puit</a>
+                    </li>
+                </ul>
+                <form class="d-flex">
+                    <input class="form-control me-2" type="search" placeholder="Votre recherche..." aria-label="Search">
+                    <button class="btn btn-outline-success" type="submit">Rechercher</button>
+                </form>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-5">
+        <div class="row">
+            <div class="col-sm-12 col-md-6 offset-md-3">
+
+                <div class="alert d-none" role="alert" id="turn-message"></div>
+
+                <div class="card mb-3" id="user-card">
+                    <div class="card-body">
+
+                        <form method="POST" id="form">
+                            <div class="mb-3">
+
+                                <label for="username" class="form-label">Nom d'utilisateur</label>
+                                <input type="text" class="form-control" id="username" minlength="2" maxlength="20"
+                                    placeholder="Saisir votre nom d'utilisateur" required>
+                            </div>
+                            <button class="btn btn-primary" id="start" type="submit">Créer un salon privée</button>
+                        </form>
+
+                    </div>
+                </div>
+
+                <div class="card mb-3 d-none" id="rooms-card">
+                    <div class="card-header">Salons disponibles</div>
+                    <ul class="list-group list-group-flush" id="rooms-list"></ul>
+                </div>
+
+                <div class="d-none" id="waiting-area">
+                    <div class="card mb-3">
+                        <div class="card-header">En attente d'un autre joueur</div>
+                        <div class="card-body mx-auto">
+                            <div class="spinner-border">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-body text-center">
+                            Partage ce lien pour inviter quelqu'un à jouer avec toi
+                            <span id="link-to-share"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card d-none" id="game-card">
+                    <div class="card-header">
+                        Pierre-Feuille-Ciseaux
+                    </div>
+                    <div class="card-body mx-auto">
+                        <button class="btn btn-primary hand-btn" id="rock">Pierre</button>
+                        <button class="btn btn-primary hand-btn" id="paper">Feuille</button>
+                        <button class="btn btn-primary hand-btn" id="scissors">Ciseaux</button>
+                        <button class="btn btn-primary hand-btn" id="well">Puit</button>
+                    </div>
+                    <div class="card-footer text-center">
+                        <button class="btn btn-primary" id="restart">Rejouer</button>
+                    </div>
+                    <div id="chat-container">
+                        <ul id="messages"></ul>
+                        <form id="form2" onsubmit="sendMessage(event)">
+                            <input id="input" autocomplete="off" placeholder="Entrez votre message..." />
+                            <button type="submit" class="btn btn-success">Envoyer</button>
+                        </form>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <script src="/jquery/jquery.min.js"></script>
+    <script src="/bootstrap/js/bootstrap.min.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
+</body>
+<script>
+    const player = {
+        host: false,
+        roomId: null,
+        username: "",
+        socketId: "",
+    };
+
+    const handNamesFr = {
+        well: 'puit',
+        rock: 'pierre',
+        paper: 'feuille',
+        scissors: 'ciseaux'
+    };
+
+    const socket = io();
+
+    const queryString = window.location.search;
+    const urlParams = new URLSearchParams(queryString);
+    const roomId = urlParams.get('room');
+
+    if (roomId) {
+        document.getElementById('start').innerText = "Rejoindre";
+    }
+
+    const usernameInput = document.getElementById('username');
+
+    const gameCard = document.getElementById('game-card');
+    const userCard = document.getElementById('user-card');
+
+    const waitingArea = document.getElementById('waiting-area');
+
+    const roomsCard = document.getElementById('rooms-card');
+    const roomsList = document.getElementById('rooms-list');
+
+    const turnMsg = document.getElementById('turn-message');
+    const linkToShare = document.getElementById('link-to-share');
+
+    let enemyUsername = "";
+
+    socket.emit('get rooms');
+    socket.on('list rooms', (rooms) => {
+        let html = "";
+
+        if (rooms.length > 0) {
+            rooms.forEach(room => {
+                if (room.players.length !== 2) {
+                    html += `<li class="list-group-item d-flex justify-content-between">
+                            <p class="p-0 m-0 flex-grow-1 fw-bold">Salon de ${room.players[0].username} - ${room.id}</p>
+                            <button class="btn btn-sm btn-success join-room" data-room="${room.id}">Rejoindre</button>
+                        </li>`;
+                }
+            });
+        }
+
+        if (html !== "") {
+            roomsCard.classList.remove('d-none');
+            roomsList.innerHTML = html;
+
+            for (const element of document.getElementsByClassName('join-room')) {
+                element.addEventListener('click', joinRoom, false)
+            }
+        }
+    });
+
+    $("#form").on('submit', function (e) {
+        e.preventDefault();
+
+        player.username = usernameInput.value;
+
+        if (roomId) {
+            player.roomId = roomId;
+        } else {
+            player.host = true;
+        }
+
+        player.socketId = socket.id;
+
+        userCard.hidden = true;
+        waitingArea.classList.remove('d-none');
+        roomsCard.classList.add('d-none');
+
+        socket.emit('playerData', player);
+    });
+
+    $(".hand-btn").on("click", function (e) {
+        const selectedHand = this.id;
+
+        socket.emit('chooseHand', { hand: selectedHand, roomId: player.roomId });
+    });
+
+    socket.on('join room', (roomId) => {
+        player.roomId = roomId;
+        linkToShare.innerHTML = `<a href="${window.location.href}?room=${player.roomId}" target="_blank">${window.location.href}?room=${player.roomId}</a>`;
+    });
+
+    socket.on('start game', (players) => {
+        console.log(players);
+        startGame(players);
+    });
+
+    socket.on('result', (result) => {
+        displayResult(result);
+    });
+
+    socket.on('chat message', function (msg) {
+        const messages = document.getElementById('messages');
+        const li = document.createElement('li');
+        li.textContent = msg;
+        messages.appendChild(li);
+
+        messages.scrollTop = messages.scrollHeight;
+    });
+
+    function startGame(players) {
+        waitingArea.classList.add('d-none');
+        gameCard.classList.remove('d-none');
+        turnMsg.classList.remove('d-none');
+
+        const enemyPlayer = players.find(p => p.socketId != player.socketId);
+        enemyUsername = enemyPlayer.username;
+
+        setTurnMessage('alert-info', 'alert-success', "Choisissez votre action : Pierre, Feuille ou Ciseaux");
+    }
+
+    function sendMessage(event) {
+        event.preventDefault();
+
+        const input = document.getElementById('input');
+        const message = input.value.trim();
+
+        if (message) {
+            socket.emit('chat message', message);
+            input.value = '';
+        }
+    }
+
+    function displayResult(result) {
+        let message = '';
+        if (result.tie) {
+            message = "C'est une égalité !";
+        } else if (result.winner.socketId === player.socketId) {
+            message = `Félicitations, vous avez gagné ! ${handNamesFr[result.winner.hand]} bat ${handNamesFr[result.loser.hand]}`;
+        } else {
+            message = `Vous avez perdu ! ${handNamesFr[result.loser.hand]} est battu par ${handNamesFr[result.winner.hand]}`;
+        }
+        setTurnMessage('alert-info', 'alert-success', message);
+
+        updatePointsDisplay();
+    }
+
+    function updatePointsDisplay() {
+        const pointsElement = document.getElementById('points');
+        pointsElement.innerHTML = '';
+
+        rooms.forEach(room => {
+            room.players.forEach(player => {
+                const playerPoints = room.scores[player.socketId] || 0;
+                const playerElement = document.createElement('div');
+                playerElement.textContent = `${player.username}: ${playerPoints} points`;
+                pointsElement.appendChild(playerElement);
+            });
+        });
+    }
+
+    function setTurnMessage(classToRemove, classToAdd, html) {
+        turnMsg.classList.remove(classToRemove);
+        turnMsg.classList.add(classToAdd);
+        turnMsg.innerHTML = html;
+    }
+
+    function resetTurnMessage() {
+        turnMsg.innerHTML = 'Nouvelle manche, choisissez votre action : Pierre, Feuille ou Ciseaux';
+    }
+
+    const joinRoom = function () {
+        const usernameInput = document.getElementById('username');
+        const username = usernameInput.value.trim();
+
+        if (username === "") {
+            alert("Veuillez entrer un nom d'utilisateur.");
+            return;
+        }
+
+        player.username = username;
+        player.socketId = socket.id;
+        player.roomId = this.dataset.room;
+
+        socket.emit('playerData', player);
+
+        userCard.hidden = true;
+        waitingArea.classList.remove('d-none');
+        roomsCard.classList.add('d-none');
+    }
+    document.getElementById('restart').addEventListener('click', function () {
+        socket.emit('restart game', player.roomId);
+    });
+
+    socket.on('restart game', function () {
+        console.log('Le jeu a été réinitialisé.');
+        resetTurnMessage();
+    });
+
+</script>
+
+</html>
